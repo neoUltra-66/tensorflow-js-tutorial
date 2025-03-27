@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>图像分类 - TensorFlow.js</title>
+</head>
+
+<body>
+    <h1>上传图片进行分类</h1>
+    <input type="file" id="imageUpload" accept="image/*">
+    <br><br>
+    <img id="preview" style="max-width: 300px; display: none;">
+    <p id="result">分类结果将显示在这里</p>
+
+    <!-- 引入 TensorFlow.js 和 MobileNet -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest"></script>
+    <script>
+        // 等待 DOM 加载完成
+        document.addEventListener('DOMContentLoaded', () => {
+            async function run() {
+            const tensor = tf.tensor2d([[1, 2], [3, 4]]);
+            const normalized = tensor.div(tensor.sum()); // 归一化
+            normalized.print();
+            // 输出：Tensor [[0.1, 0.2], [0.3, 0.4]]
+            }
+            run();
+            const uploadInput = document.getElementById('imageUpload');
+            const previewImg = document.getElementById('preview');
+            const resultText = document.getElementById('result');
+            let model;
+
+            // 加载 MobileNet 模型
+            async function loadModel() {
+                resultText.textContent = '正在加载模型...';
+                model = await mobilenet.load();
+                resultText.textContent = '模型加载完成！请上传图片。';
+            }
+
+            // 处理图片上传和分类
+            async function classifyImage() {
+                const file = uploadInput.files[0];
+                if (!file) {
+                    resultText.textContent = '请先选择一张图片！';
+                    return;
+                }
+
+                // 显示预览图片
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+
+                // 创建图片元素并等待加载完成
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = async () => {
+                    // 使用模型进行分类
+                    const predictions = await model.classify(img);
+                    // 显示前 3 个预测结果
+                    resultText.textContent = '分类结果：\n' +
+                        predictions.map(p => `${p.className} (${(p.probability * 100).toFixed(2)}%)`).join('\n');
+                };
+            }
+
+            // 初始化模型
+            loadModel();
+
+            // 监听文件上传事件
+            uploadInput.addEventListener('change', classifyImage);
+        });
+    </script>
+</body>
+
+</html>

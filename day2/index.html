@@ -1,0 +1,278 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+  <title> 手写数字识别 </title>
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+
+  <script type="text/javascript">
+    function NumPredictorApp() {
+
+      // Canvas 绘制逻辑
+      var canvas = document.getElementById('canvas');
+      var ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 最后已知位置
+      var pos = { x: 0, y: 0 };
+
+      document.addEventListener('mousemove', draw);
+      document.addEventListener('mousedown', setPosition);
+      document.addEventListener('mouseenter', setPosition);
+      document.getElementById('clearBtn').addEventListener('click', clear);
+      document.getElementById('predictBtn').addEventListener('click', predict);
+
+      /**
+       * draw：回调来处理画布上的绘图
+      */
+      function draw(e) {
+        // 必须按下鼠标左键
+        if (e.buttons !== 1)
+          return;
+
+        // 开始
+        ctx.beginPath();
+
+        ctx.lineWidth = 30;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000';
+
+        ctx.moveTo(pos.x, pos.y); 
+        setPosition(e);
+        ctx.lineTo(pos.x, pos.y); 
+
+        ctx.stroke();
+      }
+
+      function setPosition(event) {
+        // 获取目标的边界矩形
+        const rect = document.getElementById('contents').getBoundingClientRect();
+
+        pos.x = event.clientX - rect.left;
+        pos.y = event.clientY - rect.top;
+      }
+
+      /**
+       * clear：清除按钮的回调
+      */
+      function clear() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        document.getElementById('predictedNum').innerText = '';
+      }
+
+      /**
+       * 预测：预测按钮的回调
+       * */
+      async function predict() {
+        // 加载预训练模型...
+        const model = await tf.loadLayersModel('./Model_CNN/model.json');
+
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // 灰度图
+        let img = tf.browser.fromPixels(imageData);
+
+        // 调整大小
+        img = tf.image.resizeBilinear(img, [28, 28]).toFloat();
+
+        // 调整尺寸，以便 CNN 能够接受图像...注意
+        // CNN 需要格式为 [ 批号、图像 x、图像 y、通道 ] 的张量；
+        // 因此需要将张量的大小调整为 [ 1, 28, 28, 1 ]
+        img = img.mean(2)
+          .toFloat()
+          .expandDims(0)
+          .expandDims(-1);
+
+        // 归一化到 [0, 1]
+        img = img.div(tf.scalar(255.0));
+
+        // 取图像的“逆”，因为 CNN 是在黑色背景上用白色数字训练的
+        // 而我们有白色背景上的黑色数字
+        img = tf.scalar(1.0).sub(img);
+
+
+        // 做出预测
+        results = model.predict(img).arraySync()[0];
+
+        const indexOfMaxValue = results.indexOf(Math.max(...results));
+
+        // 更新预测数字文本
+        document.getElementById('predictedNum').innerText = indexOfMaxValue;
+
+
+      }
+
+      
+
+    }
+
+
+
+  </script>
+
+  <script>
+
+    // 添加较宽的左边距，使内容居中
+    function CenterContents() {
+      var leftMargin = (window.innerWidth - 890) / 2;
+      if (leftMargin > 0) {
+        var contents = document.getElementById('contents');
+        contents.style.marginLeft = leftMargin + 'px';
+      }
+    }
+
+    // 当页面大小调整时也将内容重新置于中心...
+    window.addEventListener('resize', CenterContents);
+
+    /*
+    eventWindowLoaded：用于确保所有内容都已加载
+    */
+    window.addEventListener('load', eventWindowLoaded, false);
+    function eventWindowLoaded() {
+      CenterContents();
+      NumPredictorApp();
+    }
+
+  </script>
+
+  <style>
+    #predictedNum {
+      font-family: Helvetica, sans-serif;
+      font-size: 100px;
+      padding: 20px;
+      border-color: #000;
+      border-width: thin;
+      border-style: solid;
+      border-radius: 5px;
+      text-align: center;
+      width: 360px;
+      height: 110px;
+    }
+
+    #canvas {
+      border-width: thin;
+      border-color: #000;
+      border-style: solid;
+      border-radius: 5px;
+      cursor: crosshair;
+    }
+
+    .button {
+      font-family: Helvetica, sans-serif;
+      font-size: 14px;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 5px;
+      border-width: thin;
+      border-color: #000;
+      border-style: solid;
+
+      background-color: #2d862d;
+      color: #ffffff;
+
+      /* Prevent text selection */
+      -webkit-user-select: none;
+      /* Safari */
+      -ms-user-select: none;
+      /* IE 10+ and Edge */
+      user-select: none;
+      /* Standard syntax */
+    }
+
+    .button:hover {
+      background-color: #194d19;
+    }
+
+    #clearBtn {
+      width: 342px;
+      height: 20px;
+      padding: 4px;
+      margin-top: 3px;
+    }
+
+    #predictBtn {
+      padding: 4px;
+      margin: 10px;
+      margin-top: 150px;
+      width: 100px;
+    }
+
+    .legend {
+      font-family: Helvetica, sans-serif;
+      font-size: 12px;
+    }
+
+    #tooltip {
+      position: absolute;
+      width: 55px;
+      height: auto;
+      padding: 5px;
+      background-color: rgba(255, 255, 255, 0.9);
+      -webkit-border-radius: 10px;
+      -moz-border-radius: 10px;
+      border-radius: 10px;
+      -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+      -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+      box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+      pointer-events: none;
+    }
+
+    #tooltip.hidden {
+      display: none;
+    }
+
+    #tooltip p {
+      margin: 0;
+      font-family: Helvetica, sans-serif;
+      font-size: 12px;
+      line-height: 14px;
+      text-align: center;
+    }
+  </style>
+
+</head>
+
+
+<body>
+
+  <div id='contents'>
+
+    <div id='numArea' style='float: left; position:relative; display:inline-block;'>
+
+      <canvas id='canvas' width='350' height='350'>
+        Your browser does not support the HTML 5 Canvas.
+      </canvas>
+
+      <div id='clearBtn' class='button'>Clear</div>
+
+    </div>
+
+    <div id='predictBtn' class='button' style='float:left'>
+      预测数字
+      <div style='font-size:24px'> &#x2799; &#x2799; &#x2799;</div>
+    </div>
+
+    <div id='resultsArea' style='float:left'>
+
+      <div id='predictedNum'>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id='tooltip' class='hidden'>
+    <p><span id='label'>text...</span></p>
+  </div>
+
+</body>
+
+</html>

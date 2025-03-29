@@ -77,7 +77,7 @@
         const model = await tf.loadLayersModel('./Model_CNN/model.json');
 
         let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        // 灰度图
+        // 把 imageData 转换为 TensorFlow.js 的张量 （Tensor）
         let img = tf.browser.fromPixels(imageData);
 
         // 调整大小
@@ -201,40 +201,12 @@
     #predictBtn {
       padding: 4px;
       margin: 10px;
-      margin-top: 150px;
       width: 100px;
     }
 
     .legend {
       font-family: Helvetica, sans-serif;
       font-size: 12px;
-    }
-
-    #tooltip {
-      position: absolute;
-      width: 55px;
-      height: auto;
-      padding: 5px;
-      background-color: rgba(255, 255, 255, 0.9);
-      -webkit-border-radius: 10px;
-      -moz-border-radius: 10px;
-      border-radius: 10px;
-      -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
-      -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
-      box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
-      pointer-events: none;
-    }
-
-    #tooltip.hidden {
-      display: none;
-    }
-
-    #tooltip p {
-      margin: 0;
-      font-family: Helvetica, sans-serif;
-      font-size: 12px;
-      line-height: 14px;
-      text-align: center;
     }
   </style>
 
@@ -243,36 +215,23 @@
 
 <body>
 
-  <div id='contents'>
-
-    <div id='numArea' style='float: left; position:relative; display:inline-block;'>
-
+  <div id='contents' style="display: flex; align-items: center;">
+    <div id='numArea'>
       <canvas id='canvas' width='350' height='350'>
         Your browser does not support the HTML 5 Canvas.
       </canvas>
-
       <div id='clearBtn' class='button'>Clear</div>
-
     </div>
 
-    <div id='predictBtn' class='button' style='float:left'>
+    <div id='predictBtn' class='button'>
       预测数字
       <div style='font-size:24px'> &#x2799; &#x2799; &#x2799;</div>
     </div>
 
-    <div id='resultsArea' style='float:left'>
-
+    <div id='resultsArea'>
       <div id='predictedNum'>
       </div>
-
     </div>
-
   </div>
-
-  <div id='tooltip' class='hidden'>
-    <p><span id='label'>text...</span></p>
-  </div>
-
 </body>
-
 </html>
